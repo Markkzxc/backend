@@ -527,7 +527,7 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Login from "./login";
-import Dashboard from "./pages/dashboard";
+import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/adminDashboard";
 
 export default function App() {

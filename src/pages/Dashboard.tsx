@@ -43,8 +43,6 @@ export default function Dashboard() {
     try {
       const { data } = await api.get("/todos");
       setTodos(data);
-      setMessage(""); // clear previous messages
-      setSuccess(null);
     } catch (error) {
       handleError(error, "fetching todos");
     }
@@ -53,17 +51,6 @@ export default function Dashboard() {
   useEffect(() => {
     fetchTodos();
   }, []);
-
-  // Auto-hide success message after 3 seconds
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => {
-        setMessage("");
-        setSuccess(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
 
   // Add or update todo
   const handleSaveTodo = async () => {
@@ -76,10 +63,10 @@ export default function Dashboard() {
     try {
       if (editingTodo) {
         await api.put(`/todos/${editingTodo.id}`, { title, description, status });
-        setMessage("Task updated successfully!");
+        setMessage("✅ Task updated successfully!");
       } else {
         await api.post("/todos", { title, description });
-        setMessage("Task added successfully!");
+        setMessage("✅ Task added successfully!");
       }
       setSuccess(true);
       setTitle("");
@@ -96,7 +83,7 @@ export default function Dashboard() {
   const handleDeleteTodo = async (id: number) => {
     try {
       await api.delete(`/todos/${id}`);
-      setMessage("Task deleted successfully!");
+      setMessage("✅ Task deleted successfully!");
       setSuccess(true);
       fetchTodos();
     } catch (error) {
@@ -110,6 +97,18 @@ export default function Dashboard() {
     setTitle(todo.title);
     setDescription(todo.description);
     setStatus(todo.status);
+    setMessage(""); // Clear previous messages when editing
+    setSuccess(null);
+  };
+
+  // Cancel editing
+  const handleCancel = () => {
+    setEditingTodo(null);
+    setTitle("");
+    setDescription("");
+    setStatus("pending");
+    setMessage(""); // Clear message on cancel
+    setSuccess(null);
   };
 
   // Logout
@@ -152,17 +151,7 @@ export default function Dashboard() {
             {editingTodo ? "Update Task" : "Add Task"}
           </button>
           {editingTodo && (
-            <button
-              onClick={() => {
-                setEditingTodo(null);
-                setTitle("");
-                setDescription("");
-                setStatus("pending");
-                setMessage("");
-                setSuccess(null);
-              }}
-              className="cancel-btn"
-            >
+            <button onClick={handleCancel} className="cancel-btn">
               Cancel
             </button>
           )}
