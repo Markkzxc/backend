@@ -21,31 +21,73 @@ const db = mysql.createPool({
   database: "typescript2",
 });
 
+// ===== TODOS CRUD =====
+
 // Get all todos
 app.get("/todos", async (req, res) => {
-  const [rows] = await db.query("SELECT * FROM todos");
-  res.json(rows);
+  try {
+    const [rows] = await db.query<RowDataPacket[]>("SELECT * FROM todos");
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching todos:", error);
+    res.status(500).json({ success: false, message: "Error fetching todos" });
+  }
 });
 
-// Add a new todo
 app.post("/todos", async (req, res) => {
   const { title, description } = req.body;
-  await db.query(
-    "INSERT INTO todos (title, description, completed) VALUES (?, ?, false)",
-    [title, description]
-  );
-  res.json({ success: true });
+  if (!title || !description) {
+    return res.status(400).json({ success: false, message: "All fields required" });
+  }
+  try {
+    await db.query(
+      "INSERT INTO todos (title, description, status) VALUES (?, ?, 'pending')",
+      [title, description]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error adding todo" });
+  }
 });
 
+// Update a todo (title, description, status)
+app.put("/todos/:id", async (req, res) => {
+  const { id } = req.params;
+  const { title, description, status } = req.body;
 
-// ===== Registration =====
+  try {
+    await db.query(
+      "UPDATE todos SET title = ?, description = ?, status = ? WHERE id = ?",
+      [title, description, status ?? 'pending', id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error updating todo" });
+  }
+});
+
+// Delete a todo
+app.delete("/todos/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query("DELETE FROM todos WHERE id = ?", [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error deleting todo" });
+  }
+});
+
+// ===== USER AUTH =====
+
+// Registration
 app.post("/register", async (req, res) => {
   const { fullname, username, password, email } = req.body;
-
   if (!fullname || !username || !password || !email) {
     return res.json({ success: false, message: "All fields are required" });
   }
-
   try {
     const [existing] = await db.query<RowDataPacket[]>(
       "SELECT * FROM users WHERE username = ? OR email = ?",
@@ -56,25 +98,24 @@ app.post("/register", async (req, res) => {
       return res.json({ success: false, message: "Username or email already exists" });
     }
 
-    await db.query(
-      "INSERT INTO users (fullname, username, password, email) VALUES (?, ?, ?, ?)",
-      [fullname, username, password, email]
-    );
+    await db.query("INSERT INTO users (fullname, username, password, email) VALUES (?, ?, ?, ?)", [
+      fullname,
+      username,
+      password,
+      email,
+    ]);
 
     res.json({ success: true, message: "Registration successful" });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// ===== Login =====
+// Login
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.json({ success: false, message: "Username and password required" });
-  }
+  if (!username || !password) return res.json({ success: false, message: "Username and password required" });
 
   try {
     const [rows] = await db.query<RowDataPacket[]>(
@@ -82,19 +123,12 @@ app.post("/login", async (req, res) => {
       [username, password]
     );
 
-    if (rows.length === 0) {
-      return res.json({ success: false, message: "Invalid credentials" });
-    }
+    if (rows.length === 0) return res.json({ success: false, message: "Invalid credentials" });
 
     const user = rows[0];
-    res.json({
-      success: true,
-      fullname: user.fullname,
-      role: "user", // Default role
-      message: "Login successful",
-    });
+    res.json({ success: true, fullname: user.fullname, role: "user", message: "Login successful" });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });

@@ -73,7 +73,7 @@ export default function RegisterPage() {
       </select> */}
 
         <button className="primary-btn" onClick={handleRegister}>
-        Registerasdadafdfsfsd
+        Register
         </button>
 
         <p>
